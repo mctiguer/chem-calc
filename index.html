@@ -233,7 +233,7 @@
     border-bottom: 1px solid var(--border);
   }
 
-  th:first-child { text-align: left; }
+  th:first-child { text-align: left; width: 68px; min-width: 68px; padding-right: 2px; }
 
   tbody tr {
     border-bottom: 1px solid var(--border);
@@ -250,7 +250,7 @@
     vertical-align: middle;
   }
 
-  td:first-child { text-align: left; }
+  td:first-child { text-align: left; width: 68px; min-width: 68px; max-width: 68px; padding-right: 2px; }
 
   .el-sym {
     font-weight: 500;
@@ -300,7 +300,8 @@
     font-family: var(--mono);
     font-size: 0.85rem;
     text-align: right;
-    width: 90px;
+    width: 115px;
+    min-width: 115px;
     padding: 2px 0;
     outline: none;
     transition: border-color 0.2s;
@@ -605,11 +606,11 @@ function renderRows(totalMass) {
         <div class="el-sym">${sym}</div>
         ${name ? `<div class="el-name">${name}</div>` : ''}
       </td>
-      <td>${+sub.toFixed(6)}</td>
-      <td>${AW[sym].toFixed(4)}</td>
+      <td>${+parseFloat(sub.toPrecision(6))}</td>
+      <td>${parseFloat(AW[sym].toPrecision(4))}</td>
       <td>
         <input class="mass-input" type="number" inputmode="decimal"
-               value="${+mass.toFixed(6)}" step="any"
+               value="${parseFloat(mass.toPrecision(6))}" step="any"
                data-sym="${sym}" data-mpart="${mpart}">
       </td>
       <td class="wt-bar-cell">
@@ -644,7 +645,7 @@ function onMassEdit(e) {
   resultsBody.querySelectorAll('.mass-input').forEach(other => {
     if (other === inp) return;
     const om = parseFloat(other.dataset.mpart);
-    other.value = +(om / state.molarTotal * newTotal).toFixed(6);
+    other.value = parseFloat((om / state.molarTotal * newTotal).toPrecision(6));
   });
 
   // update wt bars (unchanged)
