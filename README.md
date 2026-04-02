@@ -1,2 +1,3 @@
 # chem-calc
-Mass calculation app given chemical formula and weight to calculate masses of consituent elements.
+Mass calculation app given chemical formula and total mass to calculate masses of consituent elements. Can calculate masses of salts if desired by separating each salt with '+'.
+e.g. "Bi2SbAs4", total mass 1g will tell mass of Bi, Sb, and As. If "3NaCl + 2NH4Cl", 1g will give mass of NaCl and NH4Cl instead of elements.  
