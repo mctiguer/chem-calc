@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ChemCalc">
+<meta name="theme-color" content="#0b0e18">
+<title>ChemCalc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0b0e18;
+    --surface:  #131726;
+    --surface2: #1a1f33;
+    --border:   #252c45;
+    --accent:   #4fffcb;
+    --accent2:  #ff6b8a;
+    --accent3:  #ffd166;
+    --fg:       #dde3f5;
+    --fg2:      #6b7599;
+    --radius:   12px;
+    --mono:     'DM Mono', monospace;
+    --display:  'Syne', sans-serif;
+    --sidebar-w: 260px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.18;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Layout: sidebar + main ── */
+  .layout {
+    display: flex;
+    min-height: 100dvh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .sidebar-title {
+    font-family: var(--display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg2);
+  }
+
+  .sidebar-count {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 0.65rem;
+    color: var(--fg2);
+    padding: 2px 8px;
+  }
+
+  .sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .sidebar-list::-webkit-scrollbar { width: 4px; }
+  .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .saved-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+
+  .saved-item:last-child { border-bottom: none; }
+  .saved-item:hover { background: rgba(79,255,203,0.05); }
+  .saved-item.active { background: rgba(79,255,203,0.08); border-left: 2px solid var(--accent); }
+
+  .saved-item-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .saved-item-name input.rename-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--accent);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    outline: none;
+    width: 100%;
+    padding: 0;
+  }
+
+  .saved-item-meta {
+    font-size: 0.65rem;
+    color: var(--fg2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .saved-item-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .item-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--fg2);
+    font-size: 0.6rem;
+    padding: 2px 7px;
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .item-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .item-btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .sidebar-empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--fg2);
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .sidebar-empty .empty-icon { font-size: 1.8rem; margin-bottom: 8px; }
+
+  /* ── Main content ── */
+  .main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .app {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 32px;
+    animation: fadeDown 0.5s ease both;
+  }
+
+  .logo {
+    width: 44px; height: 44px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    box-shadow: 0 0 24px rgba(79,255,203,0.3);
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(1.4rem, 5vw, 1.9rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    flex: 1;
+  }
+
+  h1 span { color: var(--accent); }
+
+  /* mobile history button in header */
+  .history-toggle {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--fg);
+    font-size: 0.75rem;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .history-toggle:hover { border-color: var(--accent); }
+  .history-badge {
+    background: var(--accent);
+    color: var(--bg);
+    border-radius: 10px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  /* ── Mobile drawer overlay ── */
+  #drawer-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+
+  #drawer-overlay.open { display: block; }
+
+  #mobile-drawer {
+    position: fixed;
+    top: 0; right: 0;
+    width: min(320px, 88vw);
+    height: 100dvh;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    z-index: 101;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  #mobile-drawer.open { transform: translateX(0); }
+
+  .drawer-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .drawer-title {
+    font-family: var(--display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--fg);
+  }
+
+  .drawer-close {
+    background: none;
+    border: none;
+    color: var(--fg2);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .drawer-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .card:nth-child(2) { animation-delay: 0.08s; }
+  .card:nth-child(3) { animation-delay: 0.16s; }
+
+  .card-label {
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg2);
+    margin-bottom: 10px;
+  }
+
+  /* ── Inputs ── */
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: end;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.7rem; letter-spacing: 0.08em; color: var(--fg2); }
+
+  input[type="text"], input[type="number"] {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    padding: 11px 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,255,203,0.12);
+  }
+
+  #formula-input { color: var(--accent); font-size: 1.2rem; font-weight: 500; }
+  #mass-input    { color: var(--accent2); }
+
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .calc-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 12px 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 0 20px rgba(79,255,203,0.2);
+  }
+
+  .calc-btn:active { transform: scale(0.96); }
+  .calc-btn:hover  { background: #6fffd6; box-shadow: 0 0 28px rgba(79,255,203,0.35); }
+
+  .save-btn {
+    background: var(--surface2);
+    color: var(--accent3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 12px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    display: none;
+  }
+
+  .save-btn:hover { border-color: var(--accent3); box-shadow: 0 0 16px rgba(255,209,102,0.15); }
+  .save-btn:active { transform: scale(0.96); }
+  .save-btn.visible { display: block; }
+
+  /* ── Summary chips ── */
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+
+  .chip-label { color: var(--fg2); margin-right: 6px; }
+  .chip-val   { color: var(--fg); font-weight: 500; }
+  .chip-val.accent  { color: var(--accent); }
+  .chip-val.accent2 { color: var(--accent2); }
+
+  /* ── Results table ── */
+  #results-card { display: none; }
+
+  .hint {
+    font-size: 0.7rem;
+    color: var(--fg2);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .hint::before { content: '✎'; color: var(--accent2); font-size: 0.85rem; }
+
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead tr { background: var(--surface2); }
+
+  th {
+    padding: 10px 12px;
+    text-align: right;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg2);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th:first-child { text-align: left; width: 68px; min-width: 68px; padding-right: 2px; }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  tbody tr:hover { background: rgba(79,255,203,0.04); }
+
+  td { padding: 11px 12px; text-align: right; vertical-align: middle; }
+  td:first-child { text-align: left; width: 68px; min-width: 68px; max-width: 68px; padding-right: 2px; }
+
+  .el-sym { font-weight: 500; color: var(--accent); font-size: 1rem; }
+  .el-name { font-size: 0.65rem; color: var(--fg2); margin-top: 1px; }
+  .wt-bar-cell { min-width: 80px; }
+
+  .wt-bar-wrap { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .wt-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; max-width: 60px; }
+  .wt-bar-fill  { height: 100%; border-radius: 2px; background: var(--accent3); transition: width 0.4s ease; }
+  .wt-pct { color: var(--accent3); font-size: 0.8rem; min-width: 42px; text-align: right; }
+
+  .mass-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid var(--border);
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    text-align: right;
+    width: 115px;
+    min-width: 115px;
+    padding: 2px 0;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .mass-input:focus { border-color: var(--accent2); }
+
+  /* ── Error ── */
+  .error-msg {
+    background: rgba(255,107,138,0.1);
+    border: 1px solid rgba(255,107,138,0.3);
+    border-radius: 8px;
+    color: var(--accent2);
+    font-size: 0.82rem;
+    padding: 10px 14px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .row-appear { animation: fadeUp 0.3s ease both; }
+
+  /* ── Install banner ── */
+  #install-banner {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    font-size: 0.8rem;
+    color: var(--fg);
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #install-banner.visible { display: flex; }
+  .install-text { color: var(--fg2); }
+  .install-text strong { color: var(--accent); }
+
+  .install-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 7px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .dismiss-btn {
+    background: none;
+    border: none;
+    color: var(--fg2);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+  /* ── Compound mode ── */
+  tr.compound-row td:first-child { max-width: none; width: auto; }
+  .cpd-sym { font-weight: 500; color: var(--accent); font-size: 0.95rem; font-family: var(--mono); }
+  .cpd-molar { font-size: 0.65rem; color: var(--fg2); margin-top: 1px; }
+
+  /* ── Toast notification ── */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 0.8rem;
+    padding: 10px 18px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 200;
+    white-space: nowrap;
+  }
+
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Responsive ── */
+  @media (max-width: 780px) {
+    #sidebar { display: none; }
+    .history-toggle { display: flex; }
+  }
+
+  @media (max-width: 480px) {
+    .input-row { grid-template-columns: 1fr; }
+    .calc-btn  { width: 100%; }
+    .save-btn.visible { width: 100%; }
+    th, td     { padding: 9px 8px; }
+    .mass-input { width: 72px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Sidebar (desktop) ── -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Saved Growths</span>
+      <span class="sidebar-count" id="sidebar-count">0</span>
+    </div>
+    <div class="sidebar-list" id="sidebar-list"></div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main">
+  <div class="app">
+
+    <header>
+      <div class="logo">⚗</div>
+      <h1>Chem<span>Calc</span></h1>
+      <button class="history-toggle" id="history-toggle">
+        📋 History <span class="history-badge" id="history-badge">0</span>
+      </button>
+    </header>
+
+    <!-- Install PWA banner -->
+    <div id="install-banner">
+      <span class="install-text">Add <strong>ChemCalc</strong> to your home screen for offline use</span>
+      <button class="install-btn" id="install-btn">Install</button>
+      <button class="dismiss-btn" id="dismiss-btn">✕</button>
+    </div>
+
+    <!-- Input card -->
+    <div class="card">
+      <div class="card-label">Formula &amp; Mass</div>
+      <div class="input-row">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field">
+            <label>Chemical Formula</label>
+            <input id="formula-input" type="text" placeholder="e.g. Fe2(SO4)3 or Nd2O3+KCl"
+                   autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label>Total Mass (g)</label>
+            <input id="mass-input" type="number" placeholder="e.g. 10.5"
+                   inputmode="decimal" min="0" step="any">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="calc-btn" id="calc-btn">Calculate</button>
+          <button class="save-btn" id="save-btn" title="Save this growth">💾 Save</button>
+        </div>
+      </div>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <!-- Summary card -->
+    <div class="card" id="summary-card" style="display:none">
+      <div class="card-label">Summary</div>
+      <div class="summary" id="summary"></div>
+    </div>
+
+    <!-- Results card -->
+    <div class="card" id="results-card">
+      <div class="card-label" id="results-card-label">Elemental Composition</div>
+      <p class="hint">Edit any mass value to proportionally rescale all elements</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr id="results-header">
+              <th id="col-name">Element</th>
+              <th id="col-sub">Sub.</th>
+              <th id="col-awt">At. Wt.</th>
+              <th>Mass (g)</th>
+              <th class="wt-bar-cell">Wt %</th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  </div><!-- .main -->
+
+</div><!-- .layout -->
+
+<!-- Mobile drawer overlay -->
+<div id="drawer-overlay"></div>
+<div id="mobile-drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">Saved Growths</span>
+    <button class="drawer-close" id="drawer-close">✕</button>
+  </div>
+  <div class="drawer-list" id="drawer-list"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── Atomic weights (IUPAC 2021) ──────────────────────────────────────────────
+const AW = {
+  H:1.008,He:4.0026,Li:6.941,Be:9.0122,B:10.811,C:12.011,N:14.007,O:15.999,
+  F:18.998,Ne:20.180,Na:22.990,Mg:24.305,Al:26.982,Si:28.086,P:30.974,S:32.06,
+  Cl:35.45,Ar:39.948,K:39.098,Ca:40.078,Sc:44.956,Ti:47.867,V:50.942,Cr:51.996,
+  Mn:54.938,Fe:55.845,Co:58.933,Ni:58.693,Cu:63.546,Zn:65.38,Ga:69.723,Ge:72.630,
+  As:74.922,Se:78.971,Br:79.904,Kr:83.798,Rb:85.468,Sr:87.62,Y:88.906,Zr:91.224,
+  Nb:92.906,Mo:95.95,Tc:98,Ru:101.07,Rh:102.91,Pd:106.42,Ag:107.87,Cd:112.41,
+  In:114.82,Sn:118.71,Sb:121.76,Te:127.60,I:126.90,Xe:131.29,Cs:132.91,Ba:137.33,
+  La:138.91,Ce:140.12,Pr:140.91,Nd:144.24,Pm:145,Sm:150.36,Eu:151.96,Gd:157.25,
+  Tb:158.93,Dy:162.50,Ho:164.93,Er:167.26,Tm:168.93,Yb:173.04,Lu:174.97,Hf:178.49,
+  Ta:180.95,W:183.84,Re:186.21,Os:190.23,Ir:192.22,Pt:195.08,Au:196.97,Hg:200.59,
+  Tl:204.38,Pb:207.2,Bi:208.98,Po:209,At:210,Rn:222,Fr:223,Ra:226,Ac:227,
+  Th:232.04,Pa:231.04,U:238.03,Np:237,Pu:244,Am:243,Cm:247,Bk:247,Cf:251,
+  Es:252,Fm:257,Md:258,No:259,Lr:262,Rf:267,Db:270,Sg:271,Bh:270,Hs:277,
+  Mt:278,Ds:281,Rg:282,Cn:285,Nh:286,Fl:289,Mc:290,Lv:293,Ts:294,Og:294
+};
+
+const NAMES = {
+  H:"Hydrogen",He:"Helium",Li:"Lithium",Be:"Beryllium",B:"Boron",C:"Carbon",
+  N:"Nitrogen",O:"Oxygen",F:"Fluorine",Ne:"Neon",Na:"Sodium",Mg:"Magnesium",
+  Al:"Aluminum",Si:"Silicon",P:"Phosphorus",S:"Sulfur",Cl:"Chlorine",Ar:"Argon",
+  K:"Potassium",Ca:"Calcium",Sc:"Scandium",Ti:"Titanium",V:"Vanadium",Cr:"Chromium",
+  Mn:"Manganese",Fe:"Iron",Co:"Cobalt",Ni:"Nickel",Cu:"Copper",Zn:"Zinc",
+  Ga:"Gallium",Ge:"Germanium",As:"Arsenic",Se:"Selenium",Br:"Bromine",Kr:"Krypton",
+  Rb:"Rubidium",Sr:"Strontium",Y:"Yttrium",Zr:"Zirconium",Nb:"Niobium",Mo:"Molybdenum",
+  Ru:"Ruthenium",Rh:"Rhodium",Pd:"Palladium",Ag:"Silver",Cd:"Cadmium",In:"Indium",
+  Sn:"Tin",Sb:"Antimony",Te:"Tellurium",I:"Iodine",Xe:"Xenon",Cs:"Cesium",
+  Ba:"Barium",La:"Lanthanum",Ce:"Cerium",Pr:"Praseodymium",Nd:"Neodymium",
+  Sm:"Samarium",Eu:"Europium",Gd:"Gadolinium",Tb:"Terbium",Dy:"Dysprosium",
+  Ho:"Holmium",Er:"Erbium",Tm:"Thulium",Yb:"Ytterbium",Lu:"Lutetium",Hf:"Hafnium",
+  Ta:"Tantalum",W:"Tungsten",Re:"Rhenium",Os:"Osmium",Ir:"Iridium",Pt:"Platinum",
+  Au:"Gold",Hg:"Mercury",Tl:"Thallium",Pb:"Lead",Bi:"Bismuth",Th:"Thorium",
+  Pa:"Protactinium",U:"Uranium"
+};
+
+// ── Formula parser ────────────────────────────────────────────────────────────
+function parseFormula(formula) {
+  formula = formula.replace(/[·•*]/g, '');
+  let pos = 0;
+  const n = formula.length;
+
+  function parseSeg() {
+    const counts = {};
+    while (pos < n) {
+      const c = formula[pos];
+      if ('([{'.includes(c)) {
+        pos++;
+        const inner = parseSeg();
+        let numStr = '';
+        while (pos < n && /[\d.]/.test(formula[pos])) numStr += formula[pos++];
+        const mult = numStr ? parseFloat(numStr) : 1;
+        for (const [el, cnt] of Object.entries(inner))
+          counts[el] = (counts[el] || 0) + cnt * mult;
+      } else if (')]}'.includes(c)) {
+        pos++;
+        return counts;
+      } else if (/[A-Z]/.test(c)) {
+        let sym = c; pos++;
+        while (pos < n && /[a-z]/.test(formula[pos])) sym += formula[pos++];
+        let numStr = '';
+        while (pos < n && /[\d.]/.test(formula[pos])) numStr += formula[pos++];
+        const sub = numStr ? parseFloat(numStr) : 1;
+        counts[sym] = (counts[sym] || 0) + sub;
+      } else {
+        pos++;
+      }
+    }
+    return counts;
+  }
+
+  return parseSeg();
+}
+
+function molarMassOf(formula) {
+  const comp = parseFormula(formula);
+  return Object.entries(comp).reduce((sum, [sym, cnt]) => sum + AW[sym] * cnt, 0);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = { mode: 'element', molarParts: {}, molarTotal: 0, totalMass: 0, updating: false };
+
+// ── Saved growths (localStorage) ──────────────────────────────────────────────
+const STORAGE_KEY = 'chemcalc_growths';
+
+function loadGrowths() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveGrowths(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function defaultName(formula, totalMass) {
+  return `${formula} · ${parseFloat(totalMass.toPrecision(4))}g`;
+}
+
+function addGrowth() {
+  if (!state.molarTotal) return;
+  const growths = loadGrowths();
+  const name = defaultName(formulaInput.value.trim(), state.totalMass);
+  const entry = {
+    id: Date.now(),
+    name,
+    formula: formulaInput.value.trim(),
+    totalMass: state.totalMass,
+    mode: state.mode,
+    snapshot: state.mode === 'compound'
+      ? state.compounds.map(c => ({
+          formula: c.formula,
+          coeff: c.coeff,
+          molarMass: c.molarMass,
+          mass: c.molarMass / state.molarTotal * state.totalMass
+        }))
+      : Object.entries(state.molarParts).map(([sym, mpart]) => ({
+          sym, mpart,
+          mass: mpart / state.molarTotal * state.totalMass
+        })),
+    molarTotal: state.molarTotal,
+    savedAt: new Date().toLocaleString()
+  };
+  growths.unshift(entry);
+  saveGrowths(growths);
+  renderSavedLists();
+  showToast('Growth saved!');
+}
+
+function deleteGrowth(id) {
+  const growths = loadGrowths().filter(g => g.id !== id);
+  saveGrowths(growths);
+  renderSavedLists();
+}
+
+function renameGrowth(id, newName) {
+  const growths = loadGrowths();
+  const g = growths.find(g => g.id === id);
+  if (g) { g.name = newName; saveGrowths(growths); }
+}
+
+function loadGrowthIntoCalc(entry) {
+  formulaInput.value = entry.formula;
+  massInput.value = parseFloat(entry.totalMass.toPrecision(6));
+  calculate();
+  // close drawer on mobile
+  closeMobileDrawer();
+  // mark active
+  document.querySelectorAll('.saved-item').forEach(el => {
+    el.classList.toggle('active', parseInt(el.dataset.id) === entry.id);
+  });
+}
+
+// ── Render saved items into a container ───────────────────────────────────────
+function makeSavedItemEl(entry) {
+  const div = document.createElement('div');
+  div.className = 'saved-item';
+  div.dataset.id = entry.id;
+
+  // Build meta: formula + masses
+  const massLines = entry.snapshot.map(s =>
+    entry.mode === 'compound'
+      ? `${s.formula}: ${parseFloat(s.mass.toPrecision(4))}g`
+      : `${s.sym}: ${parseFloat(s.mass.toPrecision(4))}g`
+  ).join('  ');
+
+  div.innerHTML = `
+    <div class="saved-item-name">
+      <span class="item-name-text">${escHtml(entry.name)}</span>
+    </div>
+    <div class="saved-item-meta">${escHtml(massLines)}</div>
+    <div class="saved-item-meta" style="margin-top:2px;font-size:0.6rem">${entry.savedAt}</div>
+    <div class="saved-item-actions">
+      <button class="item-btn load-btn">Load</button>
+      <button class="item-btn rename-btn">Rename</button>
+      <button class="item-btn danger delete-btn">Delete</button>
+    </div>
+  `;
+
+  // click body to load
+  div.querySelector('.item-name-text').addEventListener('click', () => loadGrowthIntoCalc(entry));
+
+  // load button
+  div.querySelector('.load-btn').addEventListener('click', () => loadGrowthIntoCalc(entry));
+
+  // rename
+  div.querySelector('.rename-btn').addEventListener('click', () => {
+    const nameSpan = div.querySelector('.item-name-text');
+    const current = nameSpan.textContent;
+    const inp = document.createElement('input');
+    inp.className = 'rename-input';
+    inp.value = current;
+    nameSpan.replaceWith(inp);
+    inp.focus();
+    inp.select();
+
+    const commit = () => {
+      const val = inp.value.trim() || current;
+      renameGrowth(entry.id, val);
+      renderSavedLists();
+    };
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+      if (e.key === 'Escape') { inp.value = current; inp.blur(); }
+    });
+  });
+
+  // delete
+  div.querySelector('.delete-btn').addEventListener('click', () => {
+    deleteGrowth(entry.id);
+    showToast('Deleted');
+  });
+
+  return div;
+}
+
+function renderSavedLists() {
+  const growths = loadGrowths();
+  const count = growths.length;
+
+  // update counts/badges
+  document.getElementById('sidebar-count').textContent = count;
+  document.getElementById('history-badge').textContent = count;
+
+  // render into sidebar
+  const sidebarList = document.getElementById('sidebar-list');
+  sidebarList.innerHTML = '';
+  if (count === 0) {
+    sidebarList.innerHTML = `<div class="sidebar-empty"><div class="empty-icon">📋</div>No saved growths yet.<br>Calculate something and hit Save.</div>`;
+  } else {
+    growths.forEach(g => sidebarList.appendChild(makeSavedItemEl(g)));
+  }
+
+  // render into mobile drawer
+  const drawerList = document.getElementById('drawer-list');
+  drawerList.innerHTML = '';
+  if (count === 0) {
+    drawerList.innerHTML = `<div class="sidebar-empty"><div class="empty-icon">📋</div>No saved growths yet.<br>Calculate something and hit Save.</div>`;
+  } else {
+    growths.forEach(g => drawerList.appendChild(makeSavedItemEl(g)));
+  }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const formulaInput = document.getElementById('formula-input');
+const massInput    = document.getElementById('mass-input');
+const calcBtn      = document.getElementById('calc-btn');
+const saveBtn      = document.getElementById('save-btn');
+const errorMsg     = document.getElementById('error-msg');
+const summaryCard  = document.getElementById('summary-card');
+const summaryEl    = document.getElementById('summary');
+const resultsCard  = document.getElementById('results-card');
+const resultsBody  = document.getElementById('results-body');
+
+function showError(msg) { errorMsg.textContent = msg; errorMsg.style.display = 'block'; }
+function clearError()   { errorMsg.style.display = 'none'; }
+
+// ── Calculate ─────────────────────────────────────────────────────────────────
+function calculate() {
+  clearError();
+  const raw     = formulaInput.value.trim();
+  const massVal = parseFloat(massInput.value);
+
+  if (!raw) return showError('Please enter a chemical formula.');
+  if (!massVal || massVal <= 0) return showError('Please enter a valid positive mass.');
+
+  const isCompound = raw.includes('+');
+
+  if (isCompound) {
+    const tokens = raw.split('+').map(t => t.trim()).filter(Boolean);
+    const compounds = [];
+
+    for (const token of tokens) {
+      const match = token.match(/^(\d*\.?\d*)(.+)$/);
+      const coeff   = match && match[1] ? parseFloat(match[1]) : 1;
+      const formula = match ? match[2] : token;
+
+      let composition;
+      try { composition = parseFormula(formula); }
+      catch(e) { return showError(`Could not parse: "${formula}"`); }
+
+      const unknown = Object.keys(composition).filter(s => !AW[s]);
+      if (unknown.length) return showError(`Unknown element(s) in "${formula}": ${unknown.join(', ')}`);
+
+      const mm = molarMassOf(formula);
+      compounds.push({ formula, coeff, molarMass: mm * coeff });
+    }
+
+    const molarTotal = compounds.reduce((s, c) => s + c.molarMass, 0);
+    const molarParts = {};
+    compounds.forEach(c => { molarParts[c.formula] = c.molarMass; });
+
+    state = { mode: 'compound', compounds, molarParts, molarTotal, totalMass: massVal, updating: false };
+
+    document.getElementById('col-name').textContent = 'Compound';
+    document.getElementById('col-sub').textContent  = 'Coeff.';
+    document.getElementById('col-awt').textContent  = 'Mol. Wt.';
+    document.getElementById('results-card-label').textContent = 'Compound Composition';
+
+    summaryCard.style.display = 'block';
+    summaryEl.innerHTML = `
+      <div class="chip"><span class="chip-label">Total Mol. Wt.</span><span class="chip-val accent">${molarTotal.toFixed(4)} g/mol</span></div>
+      <div class="chip"><span class="chip-label">Total Mass</span><span class="chip-val accent2">${massVal.toFixed(4)} g</span></div>
+      <div class="chip"><span class="chip-label">Compounds</span><span class="chip-val">${compounds.length}</span></div>
+    `;
+    renderCompoundRows(massVal);
+
+  } else {
+    let composition;
+    try { composition = parseFormula(raw); }
+    catch(e) { return showError('Could not parse formula. Check syntax.'); }
+
+    if (Object.keys(composition).length === 0) return showError('No elements found in formula.');
+
+    const unknown = Object.keys(composition).filter(s => !AW[s]);
+    if (unknown.length) return showError(`Unknown element(s): ${unknown.join(', ')}. Check capitalisation.`);
+
+    const molarParts = {};
+    for (const [sym, cnt] of Object.entries(composition))
+      molarParts[sym] = AW[sym] * cnt;
+
+    const molarTotal = Object.values(molarParts).reduce((a,b) => a+b, 0);
+    state = { mode: 'element', molarParts, molarTotal, totalMass: massVal, updating: false };
+
+    document.getElementById('col-name').textContent = 'Element';
+    document.getElementById('col-sub').textContent  = 'Sub.';
+    document.getElementById('col-awt').textContent  = 'At. Wt.';
+    document.getElementById('results-card-label').textContent = 'Elemental Composition';
+
+    summaryCard.style.display = 'block';
+    summaryEl.innerHTML = `
+      <div class="chip"><span class="chip-label">Molar Mass</span><span class="chip-val accent">${molarTotal.toFixed(4)} g/mol</span></div>
+      <div class="chip"><span class="chip-label">Total Mass</span><span class="chip-val accent2">${massVal.toFixed(4)} g</span></div>
+      <div class="chip"><span class="chip-label">Elements</span><span class="chip-val">${Object.keys(composition).length}</span></div>
+    `;
+    renderElementRows(massVal);
+  }
+
+  resultsCard.style.display = 'block';
+  saveBtn.classList.add('visible');
+  resultsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── Render element rows ───────────────────────────────────────────────────────
+function renderElementRows(totalMass) {
+  resultsBody.innerHTML = '';
+  const { molarParts, molarTotal } = state;
+
+  Object.entries(molarParts).forEach(([sym, mpart], i) => {
+    const sub  = mpart / AW[sym];
+    const mass = mpart / molarTotal * totalMass;
+    const wt   = mpart / molarTotal * 100;
+    const name = NAMES[sym] || '';
+
+    const tr = document.createElement('tr');
+    tr.className = 'row-appear';
+    tr.style.animationDelay = `${i * 0.05}s`;
+    tr.innerHTML = `
+      <td>
+        <div class="el-sym">${sym}</div>
+        ${name ? `<div class="el-name">${name}</div>` : ''}
+      </td>
+      <td>${+parseFloat(sub.toPrecision(6))}</td>
+      <td>${parseFloat(AW[sym].toPrecision(4))}</td>
+      <td>
+        <input class="mass-input" type="number" inputmode="decimal"
+               value="${parseFloat(mass.toPrecision(6))}" step="any"
+               data-sym="${sym}" data-mpart="${mpart}">
+      </td>
+      <td class="wt-bar-cell">
+        <div class="wt-bar-wrap">
+          <div class="wt-bar-track"><div class="wt-bar-fill" style="width:${wt}%"></div></div>
+          <span class="wt-pct">${wt.toFixed(2)}%</span>
+        </div>
+      </td>
+    `;
+    resultsBody.appendChild(tr);
+    const inp = tr.querySelector('.mass-input');
+    inp.addEventListener('change', onMassEdit);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }});
+  });
+}
+
+// ── Render compound rows ──────────────────────────────────────────────────────
+function renderCompoundRows(totalMass) {
+  resultsBody.innerHTML = '';
+  const { compounds, molarTotal } = state;
+
+  compounds.forEach((cpd, i) => {
+    const mass = cpd.molarMass / molarTotal * totalMass;
+    const wt   = cpd.molarMass / molarTotal * 100;
+
+    const tr = document.createElement('tr');
+    tr.className = 'row-appear compound-row';
+    tr.style.animationDelay = `${i * 0.05}s`;
+    tr.innerHTML = `
+      <td style="max-width:none;width:auto;">
+        <div class="cpd-sym">${cpd.formula}</div>
+        <div class="cpd-molar">${parseFloat(cpd.molarMass.toPrecision(6))} g/mol</div>
+      </td>
+      <td>${+parseFloat(cpd.coeff.toPrecision(6))}</td>
+      <td>${parseFloat(cpd.molarMass.toPrecision(4))}</td>
+      <td>
+        <input class="mass-input" type="number" inputmode="decimal"
+               value="${parseFloat(mass.toPrecision(6))}" step="any"
+               data-mpart="${cpd.molarMass}">
+      </td>
+      <td class="wt-bar-cell">
+        <div class="wt-bar-wrap">
+          <div class="wt-bar-track"><div class="wt-bar-fill" style="width:${wt}%"></div></div>
+          <span class="wt-pct">${wt.toFixed(2)}%</span>
+        </div>
+      </td>
+    `;
+    resultsBody.appendChild(tr);
+    const inp = tr.querySelector('.mass-input');
+    inp.addEventListener('change', onMassEdit);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }});
+  });
+}
+
+// ── Rescale on edit ───────────────────────────────────────────────────────────
+function onMassEdit(e) {
+  if (state.updating) return;
+  const inp     = e.target;
+  const newMass = parseFloat(inp.value);
+  if (!newMass || newMass <= 0) return;
+  const mpart    = parseFloat(inp.dataset.mpart);
+  const frac     = mpart / state.molarTotal;
+  const newTotal = newMass / frac;
+
+  state.updating = true;
+  state.totalMass = newTotal;
+
+  resultsBody.querySelectorAll('.mass-input').forEach(other => {
+    if (other === inp) return;
+    const om = parseFloat(other.dataset.mpart);
+    other.value = parseFloat((om / state.molarTotal * newTotal).toPrecision(6));
+  });
+
+  summaryEl.querySelector('.chip-val.accent2').textContent = `${newTotal.toFixed(4)} g`;
+  massInput.value = +newTotal.toFixed(6);
+  state.updating = false;
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+calcBtn.addEventListener('click', calculate);
+saveBtn.addEventListener('click', addGrowth);
+formulaInput.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+massInput.addEventListener('keydown',    e => { if (e.key === 'Enter') calculate(); });
+
+// ── Mobile drawer ─────────────────────────────────────────────────────────────
+function openMobileDrawer()  {
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('mobile-drawer').classList.add('open');
+}
+function closeMobileDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('mobile-drawer').classList.remove('open');
+}
+
+document.getElementById('history-toggle').addEventListener('click', openMobileDrawer);
+document.getElementById('drawer-close').addEventListener('click', closeMobileDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', closeMobileDrawer);
+
+// ── PWA install prompt ────────────────────────────────────────────────────────
+const banner     = document.getElementById('install-banner');
+let deferredPrompt = null;
+
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = window.navigator.standalone === true;
+if (isIOS && !isStandalone) {
+  banner.innerHTML = `
+    <span class="install-text">Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> to install offline</span>
+    <button class="dismiss-btn" id="dismiss-btn">✕</button>
+  `;
+  banner.classList.add('visible');
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isStandalone) banner.classList.add('visible');
+});
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'install-btn' && deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { banner.classList.remove('visible'); deferredPrompt = null; });
+  }
+  if (e.target.id === 'dismiss-btn') banner.classList.remove('visible');
+});
+
+// ── Service Worker ────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'chemcalc-v2';
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll([
+        self.location.pathname,
+        'https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap'
+      ])));
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match(self.location.pathname))));
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderSavedLists();
+</script>
+</body>
+</html>
